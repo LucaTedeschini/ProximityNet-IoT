@@ -6,7 +6,7 @@ seguire [questa guida](https://docs.espressif.com/projects/arduino-esp32/en/late
 
 # ToDos
 
--[ ] Separare la logica in classi
+-[x] Separare la logica in classi
 -[ ] Trovare un modo per loggare su PC dei dati (via wifi o direttamente seriale) 
 -[ ] Creare sketch per analisi della distanza RSSI
 -[ ] Creare workflow funzionante
