@@ -11,7 +11,7 @@ public:
 class Manager {
 public:
   Manager(uint64_t uuid, int listenMs, int advMs, int beaconPower);
-    void doOneCycle();
+  void doOneCycle();
 private:
   void setBeacon(); //done
   int listenMessages(); //done
