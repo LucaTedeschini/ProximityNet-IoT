@@ -4,7 +4,7 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(("0.0.0.0", 9999))
 
 print("Logging UDP packets...")
-file = open("results.csv", "w")
+file = open("results_power_7.csv", "w")
 file.write("meters,rssi\n")
 while True:
     data, addr = sock.recvfrom(1024)
