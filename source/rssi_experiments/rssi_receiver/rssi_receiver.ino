@@ -17,9 +17,9 @@
 /**************************/
 uint64_t UUID = ((uint64_t)esp_random() << 32) | esp_random();
 // REMEMBER TO CHANGE TEHESE VARIABLES
-const char* ssid = "***";
-const char* password = "***";
-const char* server_ip = "192.168.1.5";
+const char* ssid = "espwifi";
+const char* password = "espwifii";
+const char* server_ip = "172.26.252.207";
 const int port = 9999;
 
 
@@ -46,17 +46,17 @@ void setup() {
 
 void loop() {
   int received_rssi;
-  char buffer[16];
+  char buffer[32];
   for (int i = 0; i<10; i++) {
     Serial.printf("Prepare the test at %i meters! Starting in a few seconds\n", i+1);
-    delay(30000);
-    for (int j=0; j<10;j++) {
-      Serial.printf("\tStarting %d/10 iteration...\n", j+1);
+    delay(5000);
+    for (int j=0; j<5;j++) {
+      Serial.printf("\tStarting %d/5 iteration...\n", j+1);
       received_rssi = blemanager->checkRSSI();
       sprintf(buffer, "%d / %d", i+1, received_rssi);
       wifimanager->sendMessage(buffer);
       Serial.printf("\t\tFinished %d/10 iteration...\n", j+1);
-      delay(1000);
+      delay(100);
     }
   }
 }
