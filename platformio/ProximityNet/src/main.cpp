@@ -45,11 +45,21 @@ void setup() {
   blemanager = new Manager(UUID, listenMs, advMs, power);
   wifimanager = new WifiManager(ssid, password, server_ip, port);
 
+  int sleep = 10;
+  blemanager->setTimeWakeUp(sleep); //10 seconds used for deep sleep, light sleep, ...
 }
 
 void loop() {
   delay(1000);
   blemanager->doOneCycle();
   wifimanager->sendMessage();
+  Serial.printf("Start light sleep mode\n");
+  Serial.flush();
+  esp_light_sleep_start();  //sleep variable duration
+  /*
+  Il deep sleep spegne tutto e deve rifare il boot rieseguendo il setup()
+  Il light sleep una delle cose che mantiene attiva è la RAM quindi non ha bisogno di un riavvio
+  */
+  Serial.printf("Stop light sleep mode\n");
   Serial.printf("\n\n--------------------------------------------\n\n");
 }
