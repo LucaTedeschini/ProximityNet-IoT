@@ -9,6 +9,8 @@ import random
 class device():
     '''This class define the behaviour of an esp32 as a Finite State Machine
     '''
+
+    
     def __init__(self, name:str="", tBeacon:int=1):
         self.name = name
 
@@ -23,6 +25,7 @@ class device():
         self.averageSendTime = []   #TODO: implement this
 
         self.currentState()
+
 
     def currentState(self):
 
@@ -50,7 +53,7 @@ class device():
 
 ##################################################### MAIN #########################################
 # define each esp32 in the radius of interest
-deviceNumber = 30       # supposing around one device there are 10 peoples
+deviceNumber = 30       # supposing around one device there are 30 peoples
 devices = []
 for i in range(deviceNumber):
     devices.append(device(name=f"device{i}"))
@@ -60,34 +63,47 @@ duration = 4*60*60 #4 hours
 
 # analysis parameters
 listSends = {}
+deviceMessages = {}     # stores the number of devices : amount of detected positions
 
-# analysis
-for d in range(duration):
+for deviceNumber_ in range(deviceNumber):
+    
+    positionDetected = 0    # how many times is detected the position?
+    
+    # analysis
+    for d in range(duration):
+            
+        # count sends
+        sends = 0
+        i = 0
+        for i in range(deviceNumber_):
+            if devices[i].status == "beacon": 
+                # TODO: check receivers
+                sends += 1
+            devices[i].currentState()    # update device status
+
+        # listSends[d] = sends
+
+        l = 0   # how many devices are listening?
+        for i in range(deviceNumber):
+            if devices[i].status == "listen":
+                l += 1  
         
-    # count sends
-    sends = 0
-    i = 0
-    for i in range(deviceNumber):
-        if devices[i].status == "beacon": 
-            # TODO: check receivers
-            sends += 1
-        devices[i].currentState()    # update device status
+        if l >= 3 and sends == 1:
+            positionDetected += 1
 
-    listSends[d] = sends
+    deviceMessages[f"{deviceNumber_}"] = positionDetected
 
-    # if sends == 1: print(f"Correct send at {d} time")
+print("Finish simulation")
 
-print("Finish")
-
-x = list(listSends.keys())
-y = list(listSends.values())
+x = list(deviceMessages.keys())
+y = list(deviceMessages.values())
 
 # Plot
 plt.figure(figsize=(12, 5))
 plt.plot(x, y, linewidth=0.8)
-plt.xlabel("Tempo (secondi)")
-plt.ylabel("Valore")
-plt.title("Grafico dei dati nel tempo")
+plt.xlabel("number of devices")
+plt.ylabel("number of position detected in total")
+plt.title("")
 plt.grid(True)
 plt.tight_layout()
 plt.show()
