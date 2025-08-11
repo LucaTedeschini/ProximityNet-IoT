@@ -4,18 +4,24 @@ TODO
 # Installare esp32 su arduino
 seguire [questa guida](https://docs.espressif.com/projects/arduino-esp32/en/latest/installing.html)
 
-# ToDos
 
-- [x] Separare la logica in classi
-- [x] Trovare un modo per loggare su PC dei dati (via wifi o direttamente seriale)
-- [x] Creare sketch per analisi della distanza RSSI
-- [ ] Aggiungere un controllo integrità pacchetto (bit parità / crc)
-- [ ] Switch da arduino IDE a platformio.org
-- [ ] Creare workflow funzionante
-    - [ ] Setti UUID hardcodato da codice
-    - [ ] Implementazione ciclo di ascolto ed invio (e invio dati al pc / dispositivo esterno)
-    - [ ] Salvare i dati ricevuti
+# ToDo low level
+- [ ] Aggiungere il quarto stato nella macchina a stati finiti nella simulazione (comunicazione tra esp e client)
+- [ ] Implementare comunicazione tra esp-32 e Client
+- [ ] Verificare che i consumi del BT del datasheet siano validi per il BLE
+- [ ] Implementare comunicazione esp-32 -> client
+    - [ ] Sistema di cache
+    - [ ] Sistema di timer (16 o 32 bit)
+    - [ ] Client deve convertire i tempi da "relativo" ad assoluto (timestamp - timer esp)
+    
+# ToDo high level
+- [ ] Strutturare tabelle databse QuestDB
+- [ ] Creare workflow completo di invio dei dati
+- [ ] Creare simulazione con PyGame di un evento di utilizzo
+- [ ] App Android
 
+# ToDo project
+- [ ] Iniziare report LaTeX
 
 
 # acknowledgements
