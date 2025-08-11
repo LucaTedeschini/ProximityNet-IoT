@@ -1,112 +1,162 @@
 import matplotlib.pyplot as plt
 import random
+from classes import device
 
 # in this code is used the Monte Carlo simulation to analyze the statistical behaviour of the P-NET 
 # supposing each esp32 works in the following way:
 # beacon | listen (random) | sleep (random)
 
-
-class device():
-    '''This class define the behaviour of an esp32 as a Finite State Machine
-    '''
-
-    
-    def __init__(self, name:str="", tBeacon:int=1):
-        self.name = name
-
-        self.maxListen = 10
-        self.maxSleep = 10
-
-        self.beacon = tBeacon
-        self.listen = random.randint(1, self.maxListen)
-        self.sleep = random.randint(1, self.maxSleep)
-        self.status = random.choice(["beacon", "listen", "sleep"])
-
-        self.averageSendTime = []   #TODO: implement this
-
-        self.currentState()
-
-
-    def currentState(self):
-
-        if self.status == "beacon":
-            self.status = "listen"
-            self.listen = random.randint(1, self.maxListen)
-        
-        elif self.status == "listen":
-            if self.listen > 0: self.listen -= 1
-            else: 
-                self.status = "sleep"
-                self.sleep = random.randint(1, self.maxSleep)
-
-        elif self.status == "sleep":
-            if self.sleep > 0: self.sleep -= 1
-            else:
-                self.status = "beacon"
-
-
-
-
-
+#####################
+# GLOBAL VARIABLES 
+#####################
+decimalNumber = 3
 
 
 
 ##################################################### MAIN #########################################
-# define each esp32 in the radius of interest
-deviceNumber = 30       # supposing around one device there are 30 peoples
-devices = []
-for i in range(deviceNumber):
-    devices.append(device(name=f"device{i}"))
+B = 12
+b = B * 8
+minBeacon, maxBeacon = 1, 1
+minListen, maxListen = 1, 10
+minSleep, maxSleep = 1, 10
 
-# define the duration of the event
-duration = 4*60*60 #4 hours
+Vcc = 3.3
+beaconPower = Vcc * 130e-3  #[W]
+listenPower = Vcc * 100e-3  #[W]
+sleepPower = Vcc * 0.8e-3   #[W]
 
-# analysis parameters
-listSends = {}
-deviceMessages = {}     # stores the number of devices : amount of detected positions
+frequecy = 240e+6
+unitTime = b / (frequecy) # one unit time = time needed to send one beacon with 240MHz
 
-for deviceNumber_ in range(deviceNumber):
+# hours = 4
+# duration = (hours*60*60)/unitTime #4 hours, event duration
+duration = 100000
+
+
+
+
+
+
+
+
+
+###################################
+# average power consumption of a cycle: beacon | listen | sleep
+###################################
+
+# print(f"\n\nduration: {duration} beacon cycles")
+# print(f"borders of power consumption of a cycle:\n"\
+#       f"min = {round((minBeacon*beaconPower + minListen*listenPower + minSleep*sleepPower)\
+#             * unitTime * 1e+9, decimalNumber)}[nJ]\n"\
+#       f"max = {round((maxBeacon*beaconPower + maxListen*listenPower + maxSleep*sleepPower)\
+#                * unitTime * 1e+6, decimalNumber)}[uJ]")
+
+# energy = []
+# oneESP = device()
+# oneESP.name = "energy consumption"
+# for d in range(duration):
+#     power = 0
+#     beacon = random.randint(minBeacon, maxBeacon)
+#     listen = random.randint(minListen, maxListen)
+#     sleep = random.randint(minSleep, maxSleep)
+
+#     for b in range(beacon): power += beaconPower
+#     for l in range(listen): power += listenPower
+#     for s in range(sleep): power += sleepPower
+
+#     energy.append(power * unitTime)
     
-    positionDetected = 0    # how many times is detected the position?
+# print(f"Total energy consumed: {sum(energy)}[J]")
+# print(f"Average energy consumed during one cycle: {sum(energy) / len(energy)}[J]\n")
+
+
+
+
+
+
+
+
+
+
+
+
+##############################################
+# statistical analysis
+##############################################
+deviceNumber = 30
+
+deviceMessages = {}     # stores the number of devices : amount of detected positions
+timePower = {f"{i}" : [] for i in range(30)}
+
+for deviceNumber_ in range(1, deviceNumber):
+
+    devices = []
+    for i in range(deviceNumber_):
+        devices.append(device(name=f"device{i}",\
+                            minBeacon=minBeacon, maxBeacon=maxBeacon,\
+                            minListen=minListen, maxListen=maxListen,\
+                            minSleep=minSleep, maxSleep=maxSleep))
+    
+    energyAvg = []
+    nearDeviceDetected = 0
     
     # analysis
     for d in range(duration):
             
-        # count sends
-        sends = 0
+        sends = 0   # how many TX in one cycle
         i = 0
+        l = 0       # how many listens in one cycle
         for i in range(deviceNumber_):
-            if devices[i].status == "beacon": 
-                # TODO: check receivers
+
+            if devices[i].status == "beacon":       # check TX
                 sends += 1
-            devices[i].currentState()    # update device status
 
-        # listSends[d] = sends
-
-        l = 0   # how many devices are listening?
-        for i in range(deviceNumber):
-            if devices[i].status == "listen":
+            if devices[i].status == "listen":       # check RX
                 l += 1  
-        
-        if l >= 3 and sends == 1:
-            positionDetected += 1
 
-    deviceMessages[f"{deviceNumber_}"] = positionDetected
+            if deviceNumber_ == 29: 
+                devices[i].energyBehaviour()
+                timePower[f"{i}"].append(devices[i].instantPower)
+            devices[i].currentState()       # update device status
+
+        if l > 0 and sends == 1:
+            nearDeviceDetected += 1
+
+    deviceMessages[f"{deviceNumber_}"] = nearDeviceDetected
+
+    print(f"Analysis done with {deviceNumber_} devices")
+
 
 print("Finish simulation")
+print(f"Average period power consumption of device0 = "\
+      f"{sum(devices[0].energyPeriods) / len(devices[0].energyPeriods)} [J]")
+print(f"Total energy consumed = {sum(devices[0].energyPeriods)} [J]")
 
-x = list(deviceMessages.keys())
-y = list(deviceMessages.values())
 
-# Plot
-plt.figure(figsize=(12, 5))
-plt.plot(x, y, linewidth=0.8)
-plt.xlabel("number of devices")
-plt.ylabel("number of position detected in total")
-plt.title("")
-plt.grid(True)
+# instant energy plotted
+x_timePower = list(range(len(timePower["0"][100:500])))
+y_timePower = list(timePower["0"][100:500])
+
+x_throughput = list(deviceMessages.keys()) # number of devices
+y_throughput = list(deviceMessages.values())    # number of near devices detected
+
+fig, (ax_timePower, ax_throughput) =plt.subplots(2, 1, figsize=(8,6))
+
+ax_timePower.plot(x_timePower, y_timePower, linewidth=0.8)
+ax_timePower.set_xlabel("time over duration")
+ax_timePower.set_ylabel("instant power [W]")
+ax_timePower.set_title("time-power (device0 power)")
+ax_timePower.grid(True)
+
+ax_throughput.plot(x_throughput, y_throughput, linewidth=0.8)
+ax_throughput.set_xlabel("number of devices")
+ax_throughput.set_ylabel(f"number of devices detected")
+ax_throughput.set_title(f"throughput ({duration} cycles)")
+ax_throughput.grid(True)
+
 plt.tight_layout()
 plt.show()
+input("Press something to exit ...")
 
 
         
