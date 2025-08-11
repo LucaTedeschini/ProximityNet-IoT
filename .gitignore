@@ -1,2 +1,5 @@
 
 .vscode/settings.json
+flask_server/.env
+flask_server/__pycache__/app.cpython-310.pyc
+/flask_server/env
