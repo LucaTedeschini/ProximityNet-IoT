@@ -20,6 +20,10 @@ seguire [questa guida](https://docs.espressif.com/projects/arduino-esp32/en/late
 - [ ] Creare simulazione con PyGame di un evento di utilizzo
 - [ ] App Android
 
+# ToDo Machine learning
+- [ ] Pulizia dei dati
+- [ ] Analisi dei dati
+
 # ToDo project
 - [ ] Iniziare report LaTeX
 
