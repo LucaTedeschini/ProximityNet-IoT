@@ -32,7 +32,7 @@ def api_user_register():
     except conn.IntegrityError:
         return jsonify({"status": 1, "message": f"Username '{username}' already exists"}), 409
     except Exception as e:
-        return jsonify({"status": 1, "message": f"Error while registering username: {e}"}), 500
+        return jsonify({"status": 2, "message": f"Error while registering username: {e}"}), 500
 
 @app.route("/api/user/login", methods=['POST'])
 def api_user_login():
@@ -46,8 +46,11 @@ def api_user_login():
     conn = get_db_connection()
     user = conn.execute("SELECT * FROM credentials WHERE username = ?", (username,)).fetchone()
 
+    if user is None:
+        return jsonify({"status": 1, "message": "User does not exists"}), 401
+    
     if user is None or not check_password_hash(user['password'], password):
-        return jsonify({"status": 1, "message": "Invalid credentials"}), 401
+        return jsonify({"status": 2, "message": "Invalid credentials"}), 401
 
     token = secrets.token_hex(32)
     user_id = user['id']
@@ -63,7 +66,7 @@ def api_user_login():
         conn.commit()
         return jsonify({"status": 0, "message": "Login successful", "data": {"token": token}})
     except Exception as e:
-        return jsonify({"status": 1, "message": f"Could not issue token: {e}"}), 500
+        return jsonify({"status": 3, "message": f"Could not issue token: {e}"}), 500
 
 @app.route("/api/get_my_info", methods=['GET'])
 @token_required
