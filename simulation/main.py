@@ -10,13 +10,13 @@ BEACON_COLOR = (255, 0, 0)
 SLEEP_COLOR = (100, 100, 255)  # Colore blu per l'aura
 IDLE_COLOR = (100, 100, 100)  # Colore blu per l'aura
 
-MAX_SLEEP_TIME = 30
+MAX_SLEEP_TIME = 1
 MAX_RECEIVE_TIME = 15
 MAX_BEACON_TIME = 5
 
 WIDTH = 500
 HEIGHT = 500
-N_USERS = 30
+N_USERS = 100
 SIZE = 5
 AURA = 35
 
@@ -69,6 +69,10 @@ def main():
         # 2: Update state
         for user in users:
             user.change_state(elapsed_time)
+
+        # 3: Check for follisions
+        for user in users:
+            user.check_collisions(users)
 
         canvas.fill(WHITE)
         
