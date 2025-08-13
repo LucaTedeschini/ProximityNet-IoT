@@ -21,8 +21,8 @@ seguire [questa guida](https://docs.espressif.com/projects/arduino-esp32/en/late
 - [ ] App Android
 
 # ToDo Machine learning
-- [ ] Pulizia dei dati
-- [ ] Analisi dei dati
+- [x] Pulizia dei dati
+- [x] Analisi dei dati
 
 # ToDo project
 - [ ] Iniziare report LaTeX
