@@ -15,9 +15,9 @@ seguire [questa guida](https://docs.espressif.com/projects/arduino-esp32/en/late
     - [ ] Client deve convertire i tempi da "relativo" ad assoluto (timestamp - timer esp)
     
 # ToDo high level
-- [ ] Strutturare tabelle databse QuestDB
-- [ ] Creare workflow completo di invio dei dati
-- [ ] Creare simulazione con PyGame di un evento di utilizzo
+- [x] Strutturare tabelle databse QuestDB
+- [x] Creare workflow completo di invio dei dati
+- [x] Creare simulazione con PyGame di un evento di utilizzo
 - [ ] App Android
 
 # ToDo Machine learning
