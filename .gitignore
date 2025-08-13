@@ -7,3 +7,5 @@ flask_server/__pycache__/app.cpython-310.pyc
 *.pyc
 *.pyc
 /flask_server/utilities/__pycache__
+/data_analysis/env
+data_analysis/.env
