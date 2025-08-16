@@ -1,0 +1,9 @@
+questdb
+requests
+pandas
+matplotlib
+numpy
+networkx
+seaborn
+plotly
+nbformat
