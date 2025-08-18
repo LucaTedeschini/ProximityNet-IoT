@@ -116,3 +116,124 @@ void loop() {
     
     delay(100);
 }
+
+
+
+/****************************** below for test behaviour, implemented in espComplete *********************/
+// #include "NimBLEDevice.h"
+
+// #define SERVICE_UUID        "19B10000-E8F2-537E-4F6C-D104768A1214"
+// #define CHARACTERISTIC_UUID "19B10001-E8F2-537E-4F6C-D104768A1214"
+
+// // Variabili di stato globali
+// bool deviceConnected = false;
+// bool clientSubscribed = false;
+// uint16_t connection_handle = 0; // Per memorizzare l'ID della connessione
+// int packetsSent = 0;            // Contatore per i pacchetti inviati
+// uint32_t startAdv = 0;
+
+// class CharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+//     void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) override {
+//         if(subValue > 0) {
+//              Serial.println("\n--- ON_SUBSCRIBE ATTIVATO ---");
+//              clientSubscribed = true;
+//         } else {
+//              Serial.println("\n--- SOTTOSCRIZIONE ANNULLATA ---");
+//              clientSubscribed = false;
+//         }
+//     }
+// };
+
+
+// std::string deviceName = "espName01";
+
+// NimBLEServer *pServer;// = NimBLEDevice::createServer();
+// NimBLEService *pService;// = pServer->createService(SERVICE_UUID);
+// NimBLECharacteristic *pCharacteristic;// = pService->createCharacteristic(CHARACTERISTIC_UUID);
+// NimBLEAdvertising *pAdvertising;// = NimBLEDevice::getAdvertising();
+
+// const uint8_t maxChunkSize = 100;
+// struct BLElog{
+//   uint32_t time;
+//   uint16_t uuid;
+//   int8_t rssi;    // as defined in functions
+// };
+// BLElog logFile[maxChunkSize];
+// uint8_t logIndex = 40;
+// uint8_t numData = 40;
+
+
+// void setup() {
+//     Serial.begin(115200);
+//     delay(100);
+//     randomSeed(analogRead(A0));
+//     NimBLEDevice::init(deviceName);
+
+//     pServer = NimBLEDevice::createServer();
+//     pService = pServer->createService(SERVICE_UUID);
+//     pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID, 
+//         NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::NOTIFY
+//         );
+//     pAdvertising = NimBLEDevice::getAdvertising();
+    
+//     pCharacteristic->setCallbacks(new CharacteristicCallbacks());
+//     pService->start();
+//     // pCharacteristic->setValue("Hello BLE");
+//     pAdvertising->addServiceUUID(SERVICE_UUID); // advertise the UUID of our service
+//     pAdvertising->setName(deviceName); // advertise the device name
+// }
+
+// void loop() {
+//     if (clientSubscribed == false) pAdvertising->start(); delay(50);
+
+//     if (clientSubscribed == true) {
+//         pAdvertising->stop(); delay(50);
+
+//         // create data
+//         logIndex = numData;
+//         for (int i = 0; i<numData; i++) {
+//             logFile[i].time = millis();
+//             logFile[i].uuid = 12;
+//             logFile[i].rssi = random(1,100);
+//             logIndex--;
+//             delay(random(500,1500));
+//         }
+    
+//         // create chunked data
+//         for (int i = 0; i<numData; i++) {
+//             pCharacteristic->setValue((uint8_t*)&logFile[i], sizeof(logFile[i]));
+    
+//             bool ok = pCharacteristic->notify();
+//             if (!ok) {
+//             Serial.println("Notify fallita, ritento...");
+//             delay(10);    // aspetta un po’ per non saturare lo stack
+//             i--;          // riprova lo stesso pacchetto
+//             } 
+//             else {
+//             Serial.printf("Inviato pkt %d: time=%lu, uuid=%d, rssi=%d\n",
+//                             i, logFile[i].time, logFile[i].uuid, logFile[i].rssi);
+//             delay(5);     // piccolo pacing per sicurezza
+    
+//             }
+//         }
+//     }
+//     // uint32_t value1 = millis();
+//     // uint8_t value2 = random(1, 100);
+//     // uint8_t payload[5];
+//     // payload[0] = (value1 >> 24) & 0xFF;  // byte più significativo
+//     // payload[1] = (value1 >> 16) & 0xFF;
+//     // payload[2] = (value1 >> 8)  & 0xFF;
+//     // payload[3] = value1 & 0xFF;          // byte meno significativo
+//     // payload[4] = value2;
+//     // uint32_t millisValue = (payload[0] << 24) | payload[1] << 16 | payload[2] << 8 | payload[3];
+//     // uint8_t randomValue = payload[4];
+//     // Serial.printf("millis=%d, random=%d\n", millisValue, payload[4]);
+//     // delay(50);
+//     // pAdvertiùsing->start(); 
+//     // delay(10000);
+    
+//     // if (pAdvertising->isAdvertising() && (millis() - startAdv) >= 10000000) {
+//     // pAdvertising->stop();
+//     // delay(5000);
+//     // }
+// }
