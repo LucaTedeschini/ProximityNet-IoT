@@ -83,10 +83,11 @@ class ScanCallbacks : public NimBLEScanCallbacks {
           }
           Serial.print("Dispositivo trovato: ");
           Serial.println(advertisedDevice->toString().c_str());
-          
-          logFile[logIndex].time = millis();
-          memcpy(logFile[logIndex].uuid, &manufacturerData[3], 8);
-          logFile[logIndex].rssi = (uint8_t)advertisedDevice->getRSSI();// + 255;
+          if (logIndex < maxChunkSize) {
+            logFile[logIndex].time = millis();
+            memcpy(logFile[logIndex].uuid, &manufacturerData[3], 8);
+            logFile[logIndex].rssi = (uint8_t)advertisedDevice->getRSSI();// + 255;
+          }
           
           Serial.print("RSSI: ");
           Serial.println(advertisedDevice->getRSSI());
@@ -96,7 +97,6 @@ class ScanCallbacks : public NimBLEScanCallbacks {
       
           if (logIndex >= maxChunkSize) {
             Serial.println("Buffer pieno, fermo la scansione.");
-            pScan->stop();
             currentState = State::BLE_CONNECTION;
             // La transizione di stato avverrà nel loop principale
             }
@@ -186,8 +186,8 @@ void loop() {
       pScan->setWindow(15);//scan for windowScan * 0.625ms (must be windowScan < scanInterval)
       
       uint32_t now = millis();
-      pScan->start(0);//listenDuration*1000);
-      delay(listenDuration * 1000);
+      pScan->start(0); // false = non bloccante
+      delay(listenDuration * 1000);   // margine
       pScan->stop();
       if (currentState != State::BLE_CONNECTION) currentState = State::SLEEP;
       delay(100);
