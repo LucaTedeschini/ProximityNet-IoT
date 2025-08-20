@@ -58,6 +58,8 @@ void setBeacon() {
     pAdvertising->setAdvertisementData(oAdvertisementData);
 }
 
+
+
 /************************** LISTEN *************************/
 class ScanCallbacks : public NimBLEScanCallbacks {
   void onResult(const NimBLEAdvertisedDevice* advertisedDevice) override {
@@ -118,6 +120,21 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks {
     }
 };
 
+void setBLEConnection() {
+    NimBLEAdvertisementData oAdvertisementData = BLEAdvertisementData();
+    pAdvServer = NimBLEDevice::getAdvertising();
+    pServer = NimBLEDevice::createServer();
+    pService = pServer->createService(SERVICE_UUID);
+    pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID, 
+        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::NOTIFY
+        );
+    
+    pCharacteristic->setCallbacks(new CharacteristicCallbacks());
+    oAdvertisementData.setName(deviceName);
+    pAdvServer->addServiceUUID(SERVICE_UUID); // advertise the UUID of our service
+    pAdvServer->setAdvertisementData(oAdvertisementData);//setName(deviceName); // advertise the device name
+}
+
 
 void setup() {
     Serial.begin(115200);
@@ -137,25 +154,14 @@ void setup() {
     pScan->setDuplicateFilter(false);       //can receive the same packet multiple time
     pScan->setScanCallbacks(new ScanCallbacks());
     
-    /************************** BLE_CONNECTION *************************/
-    NimBLEAdvertisementData oAdvertisementData = BLEAdvertisementData();
-    pAdvServer = NimBLEDevice::getAdvertising();
-    pServer = NimBLEDevice::createServer();
-    pService = pServer->createService(SERVICE_UUID);
-    pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID, 
-        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::NOTIFY
-        );
-    
-    pCharacteristic->setCallbacks(new CharacteristicCallbacks());
-    oAdvertisementData.setName(deviceName);
-    pAdvServer->addServiceUUID(SERVICE_UUID); // advertise the UUID of our service
-    pAdvServer->setAdvertisementData(oAdvertisementData);//setName(deviceName); // advertise the device name
+
 
 }
 
 void loop() {
   switch(currentState) {
     case State::BEACON:{
+      setBeacon();
       /************************* BEACON ************************/
       uint8_t beaconDuration = 1;
       Serial.printf("\n--- Stato: BEACON (per %d secondi) ---\n", beaconDuration);
@@ -196,6 +202,7 @@ void loop() {
     }
 
     case State::BLE_CONNECTION:{
+      setBLEConnection();
       /************************** BLE_CONNECTION *************************/
       if (once == false) {
         Serial.printf("\n--- Stato: BLE_CONNECTION ---\n"); 
