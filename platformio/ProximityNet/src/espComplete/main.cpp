@@ -36,7 +36,7 @@ bool clientSubscribed = false;
 NimBLEServer *pServer;// = NimBLEDevice::createServer();
 NimBLEService *pService;// = pServer->createService(SERVICE_UUID);
 NimBLECharacteristic *pCharacteristic;// = pService->createCharacteristic(CHARACTERISTIC_UUID);
-
+NimBLEAdvertising* pAdvServer;
 // NimBLEAdvertising *pAdvertising;// = NimBLEDevice::getAdvertising();
 
 /******************************************************* FUNCTIONS **********************************************/
@@ -139,6 +139,7 @@ void setup() {
     
     /************************** BLE_CONNECTION *************************/
     NimBLEAdvertisementData oAdvertisementData = BLEAdvertisementData();
+    pAdvServer = NimBLEDevice::getAdvertising();
     pServer = NimBLEDevice::createServer();
     pService = pServer->createService(SERVICE_UUID);
     pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID, 
@@ -146,10 +147,9 @@ void setup() {
         );
     
     pCharacteristic->setCallbacks(new CharacteristicCallbacks());
-    pService->start();
     oAdvertisementData.setName(deviceName);
-    pAdvertising->addServiceUUID(SERVICE_UUID); // advertise the UUID of our service
-    pAdvertising->setAdvertisementData(oAdvertisementData);//setName(deviceName); // advertise the device name
+    pAdvServer->addServiceUUID(SERVICE_UUID); // advertise the UUID of our service
+    pAdvServer->setAdvertisementData(oAdvertisementData);//setName(deviceName); // advertise the device name
 
 }
 
@@ -197,11 +197,20 @@ void loop() {
 
     case State::BLE_CONNECTION:{
       /************************** BLE_CONNECTION *************************/
-      if (once == false) Serial.printf("\n--- Stato: BLE_CONNECTION ---\n"); once = true;
-      if (clientSubscribed == false) pAdvertising->start(); delay(50);
+      if (once == false) {
+        Serial.printf("\n--- Stato: BLE_CONNECTION ---\n"); 
+        pService->start(); 
+        once = true;
+      }
+
+      if (clientSubscribed == false) {
+        pAdvServer->start(); 
+        delay(50);
+      }
 
       if (clientSubscribed == true) {
-        pAdvertising->stop(); delay(50);
+        pAdvServer->stop(); 
+        delay(50);
 
         uint8_t app = logIndex;
     
@@ -222,7 +231,10 @@ void loop() {
             logIndex--;
           }
           
-          if (logIndex <= 0 | clientSubscribed == false) currentState = State::SLEEP; once = false;
+          if (logIndex <= 0 | clientSubscribed == false) {
+            currentState = State::SLEEP; 
+            once = false;
+          } 
         }
       }
     }
