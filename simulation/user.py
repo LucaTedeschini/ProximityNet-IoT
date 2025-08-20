@@ -9,7 +9,7 @@ import pygame # Aggiungiamo pygame per usare i vettori
 
 class User:
     # --- __INIT__ RIPRISTINATO ALL'ORIGINALE + AGGIUNTE PER NUOVA LOGICA ---
-    def __init__(self, username, password, base_url, x, y, size, aura, width, height, max_sleep_time, max_receive_time, max_beacon_time):
+    def __init__(self, username, password, base_url, x, y, size, aura, width, height, max_sleep_time, max_receive_time, max_beacon_time, perc_fail):
         # La parte di inizializzazione è identica all'originale
         self.states = {"SLEEP" : 0, "IDLE" : 1, "BEACON" : 2, "RECEIVE" : 3}
         self.max_sleep_time = max_sleep_time
@@ -18,6 +18,7 @@ class User:
         self.uuid = str(uuid.uuid4())
         self.username = username
         self.password = password
+        self.perc_fail = perc_fail
         self.base_url = base_url
         self.session = requests.Session() 
         self.session.headers.update({"Content-Type": "application/json"})
@@ -120,8 +121,10 @@ class User:
         
     def send_data_to_server(self):
         for device in self.device_found:
-            payload = {"user": self.uuid, "match": device}
-            response = self._make_request("POST", "/api/post_connection", data=payload)
+            chance = random.random()
+            if chance >= self.perc_fail:
+                payload = {"user": self.uuid, "match": device}
+                response = self._make_request("POST", "/api/post_connection", data=payload)
 
     def register(self, username, password):
         payload = {"username": username, "password": password}
