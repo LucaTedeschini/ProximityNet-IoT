@@ -51,7 +51,6 @@ void setBeacon() {
     uint8_t crc = crc8(customData, 11);
     customData[11] = crc;
 
-    for(int i=0; i<12; i++) Serial.printf("%02X ", customData[i]);
 
     oAdvertisementData.setName(deviceName);
     oAdvertisementData.setManufacturerData(std::string((char*)customData, sizeof(customData)));
