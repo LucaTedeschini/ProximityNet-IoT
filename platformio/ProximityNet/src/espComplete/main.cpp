@@ -7,7 +7,7 @@
 
 
 /******************************************************* GLOBAL VARIABLES ****************************************/
-std::string deviceName = "espComplete";
+std::string deviceName = "esp00";
 enum class State{ BEACON, LISTEN, SLEEP, BLE_CONNECTION };
 State currentState = State::BEACON; //the esp32 starts in this state
 
@@ -121,14 +121,6 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks {
 
 void setBLEConnection() {
     NimBLEAdvertisementData oAdvertisementData = BLEAdvertisementData();
-    pAdvServer = NimBLEDevice::getAdvertising();
-    pServer = NimBLEDevice::createServer();
-    pService = pServer->createService(SERVICE_UUID);
-    pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID, 
-        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::NOTIFY
-        );
-    
-    pCharacteristic->setCallbacks(new CharacteristicCallbacks());
     oAdvertisementData.setName(deviceName);
     pAdvServer->addServiceUUID(SERVICE_UUID); // advertise the UUID of our service
     pAdvServer->setAdvertisementData(oAdvertisementData);//setName(deviceName); // advertise the device name
@@ -149,7 +141,17 @@ void setup() {
     /************************* BEACON ************************/
     NimBLEDevice::setPower(3);
     pAdvertising = NimBLEDevice::getAdvertising();
-    setBeacon();
+    pAdvServer = NimBLEDevice::getAdvertising();
+
+    
+    pServer = NimBLEDevice::createServer();
+    pService = pServer->createService(SERVICE_UUID);    
+    pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID, 
+        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::NOTIFY
+        );
+    
+    pCharacteristic->setCallbacks(new CharacteristicCallbacks());
+    
     
     /************************** LISTEN *************************/
     pScan->setActiveScan(false);            //we are interestend on receiving only
@@ -220,6 +222,7 @@ void loop() {
         currentState = State::SLEEP;
         //pService->stop();
         pAdvServer->stop();
+        once = false;
       }
 
       if (clientSubscribed == true) {
