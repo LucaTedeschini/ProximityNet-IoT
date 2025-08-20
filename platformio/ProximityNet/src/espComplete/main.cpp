@@ -135,6 +135,9 @@ void setBLEConnection() {
 }
 
 
+uint32_t ble_connection_timeout;
+
+
 void setup() {
     Serial.begin(115200);
     delay(100);
@@ -201,17 +204,22 @@ void loop() {
     }
 
     case State::BLE_CONNECTION:{
-      setBLEConnection();
       /************************** BLE_CONNECTION *************************/
       if (once == false) {
+        setBLEConnection();
         Serial.printf("\n--- Stato: BLE_CONNECTION ---\n"); 
         pService->start(); 
+        pAdvServer->start(); 
         once = true;
+        delay(50);
+        ble_connection_timeout = millis();
       }
 
-      if (clientSubscribed == false) {
-        pAdvServer->start(); 
-        delay(50);
+    
+      if (millis() - ble_connection_timeout > 30*1000) {
+        currentState = State::SLEEP;
+        //pService->stop();
+        pAdvServer->stop();
       }
 
       if (clientSubscribed == true) {
