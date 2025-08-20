@@ -18,6 +18,8 @@ N_USERS = 60
 N_GROUPS = 8
 SIZE = 5
 AURA = 35
+PERC_FAIL = 0.90
+
 
 MAX_SLEEP_TIME = 30
 MAX_RECEIVE_TIME = 15
@@ -42,7 +44,7 @@ def create_groups(users_list, num_groups):
 def main():
     pygame.init()
     canvas = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("ProximityNet - Simulazione Sociale (Gruppi Colorati)")
+    pygame.display.set_caption("ProximityNet")
     
     aura_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
     clock = pygame.time.Clock()
@@ -62,7 +64,7 @@ def main():
             user_credential[1],
             "http://localhost:9009",
             x, y, SIZE, AURA, WIDTH, HEIGHT,
-            MAX_SLEEP_TIME, MAX_RECEIVE_TIME, MAX_BEACON_TIME
+            MAX_SLEEP_TIME, MAX_RECEIVE_TIME, MAX_BEACON_TIME, PERC_FAIL
         )
         if user.is_logged:
             users.append(user)
