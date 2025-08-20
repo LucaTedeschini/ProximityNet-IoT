@@ -1,6 +1,5 @@
-
+import asyncio
 from bleak import BleakScanner, BleakClient
-import struct
 
 CHARACTERISTIC_UUID = "19B10001-E8F2-537E-4F6C-D104768A1214"
 
