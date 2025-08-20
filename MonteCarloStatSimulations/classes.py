@@ -17,6 +17,7 @@ class device():
         self.beaconPower = Vcc * 130e-3
         self.listenPower = Vcc * 100e-3
         self.sleepPower = Vcc * 0.8e-3
+        self.ble_connectionPower = Vcc * 130e-3
         self.energyConsumption = 0
         self.energyPeriods = []
         
@@ -33,13 +34,16 @@ class device():
         self.beacon = random.randint(self.minBeacon, self.maxBeacon)
         self.listen = random.randint(self.minListen, self.maxListen)
         self.sleep = random.randint(self.minSleep, self.maxSleep)
-        self.status = random.choice(["beacon", "listen", "sleep"])
+        self.status = "beacon" #random.choice(["beacon", "listen", "sleep"])
         self.nextStatus = self.status
         self.cycle = 0
+        self.buffer = 0 #empty buffer
+        self.maxBuffer = 100
 
         self.historyStatus = {"beacon" : [self.beacon],
                               "listen" : [self.listen],
-                              "sleep"  : [self.sleep]}
+                              "sleep"  : [self.sleep],
+                              "ble_connection" : [self.buffer]}
 
         self.averageSendTime = []   #TODO: implement this
 
@@ -62,6 +66,10 @@ class device():
                 self.nextStatus = "sleep"
                 self.sleep = random.randint(self.minSleep, self.maxSleep)
                 self.historyStatus["sleep"].append(self.sleep)
+            if self.buffer >= self.maxBuffer:
+                self.listen = 0
+                self.nextStatus = "ble_connection"
+                self.historyStatus["ble_connection"].append(0)
 
         if self.status == "sleep":
             self.sleep -= 1
@@ -70,6 +78,12 @@ class device():
                 self.beacon = random.randint(self.minBeacon, self.maxBeacon)
                 self.historyStatus["beacon"].append(self.beacon)
                 self.cycle = 2
+
+        if self.status == "ble_connection": # TODO: is not considered the time needed to transfer the data
+            # uint32_t (time) | uint8_t * 8 (uuid) | int8_t (rssi) -> 13byte every row
+            self.nextStatus = "sleep"
+
+        
 
         self.status = self.nextStatus
                 
@@ -95,4 +109,10 @@ class device():
         elif self.status == "sleep":
             self.energyConsumption += self.sleepPower * self.unitTime
             self.instantPower = self.sleepPower
+        elif self.status == "ble_connection":            
+            self.data = self.buffer * 13
+            self.bleTime = (self.data * 8) / self.freq
+            self.buffer = 0 # now is an empty buffer
+            self.energyConsumption += self.ble_connectionPower * self.bleTime
+            self.instantPower = self.ble_connectionPower
 
