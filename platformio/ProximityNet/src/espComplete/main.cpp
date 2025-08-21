@@ -7,7 +7,7 @@
 
 
 /******************************************************* GLOBAL VARIABLES ****************************************/
-std::string deviceName = "esp00";
+std::string deviceName = "esp01";
 enum class State{ BEACON, LISTEN, SLEEP, BLE_CONNECTION };
 State currentState = State::BEACON; //the esp32 starts in this state
 
@@ -23,23 +23,49 @@ uint8_t logIndex = 0;
 
 /************************* BEACON ************************/
 uint64_t UUID = ((uint64_t)esp_random() << 32) | esp_random();
-NimBLEAdvertising* pAdvertising;// = NimBLEDevice::getAdvertising();
+NimBLEAdvertising* pAdvertising;
 
 /************************** LISTEN *************************/
-NimBLEScan* pScan = NimBLEDevice::getScan();  // retrieve the object used to scan
+NimBLEScan* pScan = NimBLEDevice::getScan();
 
 /************************** BLE_CONNECTION *************************/
-#define SERVICE_UUID        "19B10000-E8F2-537E-4F6C-D104768A1214"
-#define CHARACTERISTIC_UUID "19B10001-E8F2-537E-4F6C-D104768A1214"
+#define SERVICE_UUID        "19B10000-E8F2-537E-4F6C-D104768A1215"
+#define CHARACTERISTIC_UUID "19B10001-E8F2-537E-4F6C-D104768A1215"
 bool once = false;
 bool clientSubscribed = false;
-NimBLEServer *pServer;// = NimBLEDevice::createServer();
-NimBLEService *pService;// = pServer->createService(SERVICE_UUID);
-NimBLECharacteristic *pCharacteristic;// = pService->createCharacteristic(CHARACTERISTIC_UUID);
-NimBLEAdvertising* pAdvServer;
-// NimBLEAdvertising *pAdvertising;// = NimBLEDevice::getAdvertising();
+NimBLEServer *pServer;
+NimBLEService *pService;
+NimBLECharacteristic *pCharacteristic;
 
 /******************************************************* FUNCTIONS **********************************************/
+
+// Callback per gestire connessioni/disconnessioni del server
+class ServerCallbacks : public NimBLEServerCallbacks {
+    void onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) override {
+        Serial.println("✅ Client connesso!");
+    }
+    
+    void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
+        Serial.printf("❌ Client disconnesso, motivo: %d\n", reason);
+        clientSubscribed = false;
+        // NON riavviare l'advertising qui - lascia che sia gestito dal loop principale
+        Serial.println("🔄 Gestione disconnessione completata");
+    }
+};
+
+// Callback per le caratteristiche
+class CharacteristicCallbacks : public NimBLECharacteristicCallbacks {
+    void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) override {
+        if(subValue > 0) {
+             Serial.println("🔔 ON_SUBSCRIBE ATTIVATO");
+             clientSubscribed = true;
+        } else {
+             Serial.println("🔕 SOTTOSCRIZIONE ANNULLATA");
+             clientSubscribed = false;
+        }
+    }
+};
+
 /************************* BEACON ************************/
 void setBeacon() {
     NimBLEAdvertisementData oAdvertisementData = BLEAdvertisementData();
@@ -51,13 +77,10 @@ void setBeacon() {
     uint8_t crc = crc8(customData, 11);
     customData[11] = crc;
 
-
     oAdvertisementData.setName(deviceName);
     oAdvertisementData.setManufacturerData(std::string((char*)customData, sizeof(customData)));
     pAdvertising->setAdvertisementData(oAdvertisementData);
 }
-
-
 
 /************************** LISTEN *************************/
 class ScanCallbacks : public NimBLEScanCallbacks {
@@ -70,10 +93,9 @@ class ScanCallbacks : public NimBLEScanCallbacks {
 
     if (advertisedDevice->haveManufacturerData()) {
       std::string manufacturerData = advertisedDevice->getManufacturerData();
-      if (manufacturerData.length() >= 2 &&
+      if (manufacturerData.length() >= 12 &&
         manufacturerData[0] == 0x37 &&
-        manufacturerData[1] == 0x13) { //TODO: modify lenght check with our packet lenght
-
+        manufacturerData[1] == 0x13) {
 
           //Check CRC
           uint8_t received_crc = manufacturerData[11];
@@ -86,49 +108,46 @@ class ScanCallbacks : public NimBLEScanCallbacks {
           if (logIndex < maxChunkSize) {
             logFile[logIndex].time = millis();
             memcpy(logFile[logIndex].uuid, &manufacturerData[3], 8);
-            logFile[logIndex].rssi = (uint8_t)advertisedDevice->getRSSI();// + 255;
+            logFile[logIndex].rssi = (uint8_t)advertisedDevice->getRSSI();
           }
           
           Serial.print("RSSI: ");
           Serial.println(advertisedDevice->getRSSI());
-          // Serial.println(logFile[logIndex].rssi);
           
           logIndex++; 
       
           if (logIndex >= maxChunkSize) {
             Serial.println("Buffer pieno, fermo la scansione.");
             currentState = State::BLE_CONNECTION;
-            // La transizione di stato avverrà nel loop principale
-            }
-
+          }
       }
     }
   }
 } scanCallbacks;
 
 /************************** BLE_CONNECTION *************************/
-class CharacteristicCallbacks : public NimBLECharacteristicCallbacks {
-    void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) override {
-        if(subValue > 0) {
-             Serial.println("\n--- ON_SUBSCRIBE ATTIVATO ---");
-             clientSubscribed = true;
-        } else {
-             Serial.println("\n--- SOTTOSCRIZIONE ANNULLATA ---");
-             clientSubscribed = false;
-        }
-    }
-};
-
 void setBLEConnection() {
-    NimBLEAdvertisementData oAdvertisementData = BLEAdvertisementData();
-    oAdvertisementData.setName(deviceName);
-    pAdvServer->addServiceUUID(SERVICE_UUID); // advertise the UUID of our service
-    pAdvServer->setAdvertisementData(oAdvertisementData);//setName(deviceName); // advertise the device name
+    Serial.println("🔧 Configurazione advertising BLE...");
+    
+    // Ferma tutto prima di riconfigurare
+    pAdvertising->stop();
+    delay(200); // Aumenta il delay
+    
+    // Reset completo dell'advertising
+    pAdvertising->reset();
+    
+    // Configurazione semplificata
+    pAdvertising->setName(deviceName);
+    pAdvertising->addServiceUUID(NimBLEUUID(SERVICE_UUID));
+    
+    // Configurazioni per connettibilità
+    pAdvertising->setMinInterval(160); // 100ms
+    pAdvertising->setMaxInterval(240); // 150ms
+    
+    Serial.println("✅ Configurazione BLE completata (semplificata)");
 }
 
-
 uint32_t ble_connection_timeout;
-
 
 void setup() {
     Serial.begin(115200);
@@ -141,36 +160,37 @@ void setup() {
     /************************* BEACON ************************/
     NimBLEDevice::setPower(3);
     pAdvertising = NimBLEDevice::getAdvertising();
-    pAdvServer = NimBLEDevice::getAdvertising();
 
-    
+    /************************** BLE SERVER *************************/
+    // Crea e configura il server BLE subito nel setup
     pServer = NimBLEDevice::createServer();
+    pServer->setCallbacks(new ServerCallbacks());
+    
     pService = pServer->createService(SERVICE_UUID);    
     pCharacteristic = pService->createCharacteristic(CHARACTERISTIC_UUID, 
         NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::NOTIFY
-        );
+    );
     
     pCharacteristic->setCallbacks(new CharacteristicCallbacks());
     
+    // IMPORTANTE: Avvia il servizio subito nel setup
+    pService->start();
+    Serial.println("✅ Servizio BLE creato nel setup");
     
     /************************** LISTEN *************************/
-    pScan->setActiveScan(false);            //we are interestend on receiving only
-    pScan->setDuplicateFilter(false);       //can receive the same packet multiple time
+    pScan->setActiveScan(false);
+    pScan->setDuplicateFilter(false);
     pScan->setScanCallbacks(new ScanCallbacks());
-    
-
-
 }
 
 void loop() {
   switch(currentState) {
     case State::BEACON:{
       setBeacon();
-      /************************* BEACON ************************/
       uint8_t beaconDuration = 1;
       Serial.printf("\n--- Stato: BEACON (per %d secondi) ---\n", beaconDuration);
       pAdvertising->start();
-      delay(beaconDuration * 1000);//5000);
+      delay(beaconDuration * 1000);
       pAdvertising->stop();
       currentState = State::LISTEN;
       delay(100);
@@ -178,83 +198,94 @@ void loop() {
     }
 
     case State::LISTEN:{
-      /************************** LISTEN *************************/
       uint8_t listenDuration = random(3, 11);
-      uint8_t lDuration = listenDuration;
       Serial.printf("\n--- Stato: LISTEN (per %d secondi) ---\n", listenDuration);
-      pScan->setInterval(45);//every scanInterval * 0.625ms starts the scan for a window period in a different channel among 37, 38 and 39 channels)
-      pScan->setWindow(15);//scan for windowScan * 0.625ms (must be windowScan < scanInterval)
+      pScan->setInterval(45);
+      pScan->setWindow(15);
       
-      uint32_t now = millis();
-      pScan->start(0); // false = non bloccante
-      delay(listenDuration * 1000);   // margine
+      pScan->start(0);
+      delay(listenDuration * 1000);
       pScan->stop();
-      if (currentState != State::BLE_CONNECTION) currentState = State::SLEEP;
+      if (currentState != State::BLE_CONNECTION) {
+        currentState = State::SLEEP;
+      }
       delay(100);
       break;
     }
 
     case State::SLEEP:{
-      /************************** SLEEP *************************/
       uint8_t sleepDuration = random(3, 11);
       Serial.printf("\n--- Stato: SLEEP (per %d secondi) ---\n", sleepDuration);
       Serial.flush();
-      esp_sleep_enable_timer_wakeup(sleepDuration * 1000000); //is in [us]
+      esp_sleep_enable_timer_wakeup(sleepDuration * 1000000);
       esp_light_sleep_start();
       currentState = State::BEACON;
       break;
     }
 
     case State::BLE_CONNECTION:{
-      /************************** BLE_CONNECTION *************************/
       if (once == false) {
-        setBLEConnection();
         Serial.printf("\n--- Stato: BLE_CONNECTION ---\n"); 
-        pService->start(); 
-        pAdvServer->start(); 
+        
+        // Il servizio è già avviato nel setup, configura solo l'advertising
+        setBLEConnection();
+        pAdvertising->start();
+        
         once = true;
-        delay(50);
         ble_connection_timeout = millis();
+        Serial.println("📡 Advertising BLE avviato, in attesa di connessioni...");
       }
 
-    
-      if (millis() - ble_connection_timeout > 30*1000) {
+      // Timeout solo se non ci sono client connessi
+      if (millis() - ble_connection_timeout > 30*1000 && !clientSubscribed) {
+        Serial.println("⏰ Timeout BLE_CONNECTION, vado in SLEEP");
         currentState = State::SLEEP;
-        //pService->stop();
-        pAdvServer->stop();
+        pAdvertising->stop();
         once = false;
+        break;
       }
 
-      if (clientSubscribed == true) {
-        pAdvServer->stop(); 
-        delay(50);
-
-        uint8_t app = logIndex;
-    
-        // create chunked data
-        for (int i = 0; i<app; i++) {
-          pCharacteristic->setValue((uint8_t*)&logFile[i], sizeof(logFile[i]));
-  
-          bool ok = pCharacteristic->notify();
-          if (!ok) {
-            Serial.println("Notify fallita, ritento...");
-            delay(10);    // aspetta un po’ per non saturare lo stack
-            i--;          // riprova lo stesso pacchetto
-          } 
-          else {
-            Serial.printf("Inviato pkt %d: time=%lu, uuid=%d, rssi=%d\n",
-                            i, logFile[i].time, logFile[i].uuid, logFile[i].rssi);
-            delay(5);     // piccolo pacing per sicurezza
-            logIndex--;
+      // Se c'è un client sottoscritto, invia i dati
+      if (clientSubscribed == true && logIndex > 0) {
+        Serial.printf("📤 Invio %d pacchetti al client...\n", logIndex);
+        
+        uint8_t packetsToSend = logIndex;
+        
+        for (int i = 0; i < packetsToSend; i++) {
+          // Controlla se client ancora connesso prima di ogni invio
+          if (!clientSubscribed) {
+            Serial.println("❌ Client disconnesso durante invio");
+            break;
           }
           
-          if (logIndex <= 0 | clientSubscribed == false) {
-            currentState = State::SLEEP; 
-            once = false;
+          pCharacteristic->setValue((uint8_t*)&logFile[i], sizeof(logFile[i]));
+
+          bool ok = pCharacteristic->notify();
+          if (!ok) {
+            Serial.println("❌ Notify fallita, ritento...");
+            delay(50);
+            i--;
+            continue;
           } 
+          
+          Serial.printf("✅ Inviato pkt %d: time=%lu, rssi=%d\n",
+                          i, logFile[i].time, logFile[i].rssi);
+          delay(20); // Aumenta il delay tra pacchetti
         }
+        
+        // Reset del buffer dopo invio
+        logIndex = 0;
+        Serial.println("✅ Tutti i pacchetti inviati!");
+        
+        // Torna in SLEEP dopo aver inviato i dati
+        currentState = State::SLEEP; 
+        pAdvertising->stop();
+        once = false;
       }
+      
+      // Piccolo delay per non saturare il loop
+      delay(100);
+      break;
     }
   } 
 }
-
