@@ -7,16 +7,17 @@
 
 
 /******************************************************* GLOBAL VARIABLES ****************************************/
-std::string deviceName = "esp01";
+std::string deviceName = "esp00";
 enum class State{ BEACON, LISTEN, SLEEP, BLE_CONNECTION };
 State currentState = State::BEACON; //the esp32 starts in this state
 
 struct BLElog{  //7 bytes
   uint32_t time;
+  char my_uuid[8];
   char uuid[8];
   uint8_t rssi;
 };
-const uint8_t maxChunkSize = 3;
+const uint8_t maxChunkSize = 1;
 BLElog logFile[maxChunkSize];
 uint8_t logIndex = 0;
 
@@ -29,8 +30,8 @@ NimBLEAdvertising* pAdvertising;
 NimBLEScan* pScan = NimBLEDevice::getScan();
 
 /************************** BLE_CONNECTION *************************/
-#define SERVICE_UUID        "19B10000-E8F2-537E-4F6C-D104768A1215"
-#define CHARACTERISTIC_UUID "19B10001-E8F2-537E-4F6C-D104768A1215"
+#define SERVICE_UUID        "19B10000-E8F2-537E-4F6C-D104768A1214"
+#define CHARACTERISTIC_UUID "19B10001-E8F2-537E-4F6C-D104768A1214"
 bool once = false;
 bool clientSubscribed = false;
 NimBLEServer *pServer;
@@ -107,6 +108,7 @@ class ScanCallbacks : public NimBLEScanCallbacks {
           Serial.println(advertisedDevice->toString().c_str());
           if (logIndex < maxChunkSize) {
             logFile[logIndex].time = millis();
+            memcpy(logFile[logIndex].my_uuid, &UUID, 8);
             memcpy(logFile[logIndex].uuid, &manufacturerData[3], 8);
             logFile[logIndex].rssi = (uint8_t)advertisedDevice->getRSSI();
           }
@@ -272,15 +274,33 @@ void loop() {
                           i, logFile[i].time, logFile[i].rssi);
           delay(20); // Aumenta il delay tra pacchetti
         }
+
+        BLElog end_comm_packet;
+        char zero_uuid[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        end_comm_packet.time = millis();
+        end_comm_packet.rssi = 0;
+        memcpy(end_comm_packet.uuid, &zero_uuid, 8);
+        memcpy(end_comm_packet.my_uuid, &zero_uuid, 8);
+
+        pCharacteristic->setValue((uint8_t*)&end_comm_packet, sizeof(end_comm_packet));
+        pCharacteristic->notify();
+        delay(20);
         
         // Reset del buffer dopo invio
         logIndex = 0;
         Serial.println("✅ Tutti i pacchetti inviati!");
+        pServer->disconnect(0); 
+
+        unsigned long disconnectStart = millis();
+        while (clientSubscribed && (millis() - disconnectStart < 2000)) {
+            delay(10); // Aspetta che la callback di disconnessione sia chiamata
+        }
         
         // Torna in SLEEP dopo aver inviato i dati
         currentState = State::SLEEP; 
         pAdvertising->stop();
         once = false;
+
       }
       
       // Piccolo delay per non saturare il loop
