@@ -8,7 +8,7 @@ uint8_t crc8(const uint8_t *data, int len) {
       uint8_t sum = (crc ^ extract) & 0x01;
       crc >>= 1;
       if (sum) {
-        crc ^= 0x8C; // Polinomio invertito per CRC-8-DVB-S2
+        crc ^= 0x8C;
       }
       extract >>= 1;
     }

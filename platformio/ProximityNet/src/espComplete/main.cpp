@@ -43,14 +43,12 @@ NimBLECharacteristic *pCharacteristic;
 // Callback per gestire connessioni/disconnessioni del server
 class ServerCallbacks : public NimBLEServerCallbacks {
     void onConnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo) override {
-        Serial.println("✅ Client connesso!");
+        Serial.println("Client connected!");
     }
     
     void onDisconnect(NimBLEServer* pServer, NimBLEConnInfo& connInfo, int reason) override {
-        Serial.printf("❌ Client disconnesso, motivo: %d\n", reason);
+        Serial.printf("Client disconnected, reason: %d\n", reason);
         clientSubscribed = false;
-        // NON riavviare l'advertising qui - lascia che sia gestito dal loop principale
-        Serial.println("🔄 Gestione disconnessione completata");
     }
 };
 
@@ -58,10 +56,8 @@ class ServerCallbacks : public NimBLEServerCallbacks {
 class CharacteristicCallbacks : public NimBLECharacteristicCallbacks {
     void onSubscribe(NimBLECharacteristic* pCharacteristic, NimBLEConnInfo& connInfo, uint16_t subValue) override {
         if(subValue > 0) {
-             Serial.println("🔔 ON_SUBSCRIBE ATTIVATO");
              clientSubscribed = true;
         } else {
-             Serial.println("🔕 SOTTOSCRIZIONE ANNULLATA");
              clientSubscribed = false;
         }
     }
@@ -104,7 +100,7 @@ class ScanCallbacks : public NimBLEScanCallbacks {
               Serial.println("CRC Errato, pacchetto scartato.");
               return;
           }
-          Serial.print("Dispositivo trovato: ");
+          Serial.print("Device found: ");
           Serial.println(advertisedDevice->toString().c_str());
           if (logIndex < maxChunkSize) {
             logFile[logIndex].time = millis();
@@ -119,7 +115,7 @@ class ScanCallbacks : public NimBLEScanCallbacks {
           logIndex++; 
       
           if (logIndex >= maxChunkSize) {
-            Serial.println("Buffer pieno, fermo la scansione.");
+            Serial.println("Buffer is full! Stopped the scanning.");
             currentState = State::BLE_CONNECTION;
           }
       }
@@ -129,24 +125,20 @@ class ScanCallbacks : public NimBLEScanCallbacks {
 
 /************************** BLE_CONNECTION *************************/
 void setBLEConnection() {
-    Serial.println("🔧 Configurazione advertising BLE...");
+    Serial.println("BLE config started!");
     
-    // Ferma tutto prima di riconfigurare
     pAdvertising->stop();
-    delay(200); // Aumenta il delay
+    delay(200); 
     
-    // Reset completo dell'advertising
     pAdvertising->reset();
     
-    // Configurazione semplificata
     pAdvertising->setName(deviceName);
     pAdvertising->addServiceUUID(NimBLEUUID(SERVICE_UUID));
     
-    // Configurazioni per connettibilità
     pAdvertising->setMinInterval(160); // 100ms
     pAdvertising->setMaxInterval(240); // 150ms
     
-    Serial.println("✅ Configurazione BLE completata (semplificata)");
+    Serial.println("BLE config done!");
 }
 
 uint32_t ble_connection_timeout;
@@ -155,7 +147,7 @@ void setup() {
     Serial.begin(115200);
     delay(100);
     randomSeed(analogRead(A0));
-    Serial.println("Avvio ESP32 (beacon, listen, sleep, ble_connection)");
+    Serial.println("starting ESP32 (beacon, listen, sleep, ble_connection)");
 
     NimBLEDevice::init(deviceName);
 
@@ -164,7 +156,6 @@ void setup() {
     pAdvertising = NimBLEDevice::getAdvertising();
 
     /************************** BLE SERVER *************************/
-    // Crea e configura il server BLE subito nel setup
     pServer = NimBLEDevice::createServer();
     pServer->setCallbacks(new ServerCallbacks());
     
@@ -175,9 +166,7 @@ void setup() {
     
     pCharacteristic->setCallbacks(new CharacteristicCallbacks());
     
-    // IMPORTANTE: Avvia il servizio subito nel setup
     pService->start();
-    Serial.println("✅ Servizio BLE creato nel setup");
     
     /************************** LISTEN *************************/
     pScan->setActiveScan(false);
@@ -190,7 +179,7 @@ void loop() {
     case State::BEACON:{
       setBeacon();
       uint8_t beaconDuration = 1;
-      Serial.printf("\n--- Stato: BEACON (per %d secondi) ---\n", beaconDuration);
+      Serial.printf("\n--- BEACON (for %d seconds) ---\n", beaconDuration);
       pAdvertising->start();
       delay(beaconDuration * 1000);
       pAdvertising->stop();
@@ -201,7 +190,7 @@ void loop() {
 
     case State::LISTEN:{
       uint8_t listenDuration = random(3, 11);
-      Serial.printf("\n--- Stato: LISTEN (per %d secondi) ---\n", listenDuration);
+      Serial.printf("\n--- LISTEN (for %d seconds) ---\n", listenDuration);
       pScan->setInterval(45);
       pScan->setWindow(15);
       
@@ -217,7 +206,7 @@ void loop() {
 
     case State::SLEEP:{
       uint8_t sleepDuration = random(3, 11);
-      Serial.printf("\n--- Stato: SLEEP (per %d secondi) ---\n", sleepDuration);
+      Serial.printf("\n--- SLEEP (for %d seconds) ---\n", sleepDuration);
       Serial.flush();
       esp_sleep_enable_timer_wakeup(sleepDuration * 1000000);
       esp_light_sleep_start();
@@ -227,36 +216,32 @@ void loop() {
 
     case State::BLE_CONNECTION:{
       if (once == false) {
-        Serial.printf("\n--- Stato: BLE_CONNECTION ---\n"); 
+        Serial.printf("\n--- BLE_CONNECTION ---\n"); 
         
-        // Il servizio è già avviato nel setup, configura solo l'advertising
         setBLEConnection();
         pAdvertising->start();
         
         once = true;
         ble_connection_timeout = millis();
-        Serial.println("📡 Advertising BLE avviato, in attesa di connessioni...");
+        Serial.println("Advertising BLE started, waiting for connections...");
       }
 
-      // Timeout solo se non ci sono client connessi
       if (millis() - ble_connection_timeout > 30*1000 && !clientSubscribed) {
-        Serial.println("⏰ Timeout BLE_CONNECTION, vado in SLEEP");
+        Serial.println("Timeout BLE_CONNECTION, going into SLEEP");
         currentState = State::SLEEP;
         pAdvertising->stop();
         once = false;
         break;
       }
 
-      // Se c'è un client sottoscritto, invia i dati
       if (clientSubscribed == true && logIndex > 0) {
-        Serial.printf("📤 Invio %d pacchetti al client...\n", logIndex);
+        Serial.printf("Sending %d packets to client...\n", logIndex);
         
         uint8_t packetsToSend = logIndex;
         
         for (int i = 0; i < packetsToSend; i++) {
-          // Controlla se client ancora connesso prima di ogni invio
           if (!clientSubscribed) {
-            Serial.println("❌ Client disconnesso durante invio");
+            Serial.println("Client disconnected during transmission");
             break;
           }
           
@@ -264,15 +249,15 @@ void loop() {
 
           bool ok = pCharacteristic->notify();
           if (!ok) {
-            Serial.println("❌ Notify fallita, ritento...");
+            Serial.println("Notify failed, retrying...");
             delay(50);
             i--;
             continue;
           } 
           
-          Serial.printf("✅ Inviato pkt %d: time=%lu, rssi=%d\n",
+          Serial.printf("Sent pkt %d: time=%lu, rssi=%d\n",
                           i, logFile[i].time, logFile[i].rssi);
-          delay(20); // Aumenta il delay tra pacchetti
+          delay(20); 
         }
 
         BLElog end_comm_packet;
@@ -286,24 +271,21 @@ void loop() {
         pCharacteristic->notify();
         delay(20);
         
-        // Reset del buffer dopo invio
         logIndex = 0;
-        Serial.println("✅ Tutti i pacchetti inviati!");
+        Serial.println("All packets sent!");
         pServer->disconnect(0); 
 
         unsigned long disconnectStart = millis();
         while (clientSubscribed && (millis() - disconnectStart < 2000)) {
-            delay(10); // Aspetta che la callback di disconnessione sia chiamata
+            delay(10); 
         }
         
-        // Torna in SLEEP dopo aver inviato i dati
         currentState = State::SLEEP; 
         pAdvertising->stop();
         once = false;
 
       }
       
-      // Piccolo delay per non saturare il loop
       delay(100);
       break;
     }
