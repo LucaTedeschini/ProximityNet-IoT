@@ -112,7 +112,7 @@ class User:
         for device in self.device_found:
             chance = random.random()
             if chance >= self.perc_fail:
-                payload = {"user": self.uuid, "match": device}
+                payload = {"user": self.uuid, "match": device[0], "rssi" : device[1]}
                 response = self._make_request("POST", "/api/post_connection", data=payload)
 
     def register(self, username, password):
@@ -155,4 +155,4 @@ class User:
             distance = self.compute_distance(user)
             if distance + self.radius < self.aura:
                 if user.state == 3:
-                    user.device_found.add(self.uuid)
+                    user.device_found.add((self.uuid, int(-60 - 40 * (distance / self.aura))))
