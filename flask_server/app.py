@@ -32,7 +32,7 @@ def send_connection_to_questdb(receiver, transmitter, rssi, timestamp=None,
             sender.row(
                 'connections',  # table name
                 symbols={'receiver': receiver, 'transmitter': transmitter},
-                fields={'rssi': int(rssi)},
+                columns={'rssi': int(rssi)},
                 at=timestamp
             )
             sender.flush()
