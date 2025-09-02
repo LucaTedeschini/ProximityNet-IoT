@@ -31,7 +31,7 @@ def send_connection_to_questdb(receiver, transmitter, rssi, timestamp=None,
             
             sender.row(
                 'connections',  # table name
-                symbols={'receiver': receiver, 'transmitter': transmitter, 'rssi' : rssi},
+                symbols={'receiver': receiver, 'transmitter': transmitter, 'rssi' : str(rssi)},
                 at=timestamp
             )
             sender.flush()
