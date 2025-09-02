@@ -1,16 +1,12 @@
-# user.py (Fedele all'originale per la parte di rete)
-
 import uuid
 import requests
 import json
 import random
 import math
-import pygame # Aggiungiamo pygame per usare i vettori
+import pygame 
 
 class User:
-    # --- __INIT__ RIPRISTINATO ALL'ORIGINALE + AGGIUNTE PER NUOVA LOGICA ---
     def __init__(self, username, password, base_url, x, y, size, aura, width, height, max_sleep_time, max_receive_time, max_beacon_time, perc_fail):
-        # La parte di inizializzazione è identica all'originale
         self.states = {"SLEEP" : 0, "IDLE" : 1, "BEACON" : 2, "RECEIVE" : 3}
         self.max_sleep_time = max_sleep_time
         self.max_receive_time = max_receive_time
@@ -34,10 +30,8 @@ class User:
         self.set_state_timer()
         self.start_time = 0
         self.state = random.randint(0,3)
-        # Ho rimosso la vecchia logica di movimento casuale per sostituirla
 
-        # --- NUOVA AGGIUNTA: Logica di movimento basata su obiettivi ---
-        self.pos = pygame.Vector2(x, y) # Usiamo i vettori per una fisica più semplice
+        self.pos = pygame.Vector2(x, y) 
         self.velocity = pygame.Vector2(0, 0)
         self.max_speed = random.uniform(0.2, 0.4)
         self.acceleration = 0.01
@@ -48,12 +42,10 @@ class User:
         self.decision_interval = random.uniform(5, 15)
         self.color = (0, 0, 0)
 
-    # --- NUOVA AGGIUNTA: Metodi per il comportamento sociale ---
     def assign_group(self, group_id):
         self.group_id = group_id
 
     def assign_group_and_color(self, group_id, color):
-        """Assegna l'ID del gruppo e il colore del gruppo all'utente."""
         self.group_id = group_id
         self.color = color
 
@@ -73,7 +65,6 @@ class User:
             self.current_target = pygame.Vector2(random.uniform(0, self.max_width), random.uniform(0, self.max_height))
 
     def update_behavior(self, delta_time, group_center, points_of_interest):
-        """Questa funzione ora gestisce SOLO il movimento, sostituendo move_with_inertia."""
         self.decision_timer += delta_time
         if self.decision_timer > self.decision_interval:
             self.decide_next_move(group_center, points_of_interest)
@@ -94,11 +85,9 @@ class User:
             self.velocity.y *= -0.5
             self.pos.y = max(self.radius, min(self.pos.y, self.max_height - self.radius))
             
-        # Aggiorna le coordinate x, y originali per compatibilità con il resto del codice
         self.x = self.pos.x
         self.y = self.pos.y
 
-    # --- TUTTE LE FUNZIONI SEGUENTI SONO IDENTICHE ALL'ORIGINALE ---
 
     def set_state_timer(self):
         self.sleep_time = random.randint(1,self.max_sleep_time)
