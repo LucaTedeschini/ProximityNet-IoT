@@ -19,7 +19,7 @@ def teardown_db(exception):
 
 
 
-def send_connection_to_questdb(receiver, transmitter, timestamp=None, 
+def send_connection_to_questdb(receiver, transmitter, rssi, timestamp=None, 
                               host="localhost", port=9000, 
                               username=None, password=None):
     
@@ -31,7 +31,7 @@ def send_connection_to_questdb(receiver, transmitter, timestamp=None,
             
             sender.row(
                 'connections',  # table name
-                symbols={'receiver': receiver, 'transmitter': transmitter},
+                symbols={'receiver': receiver, 'transmitter': transmitter, 'rssi' : rssi},
                 at=timestamp
             )
             sender.flush()
