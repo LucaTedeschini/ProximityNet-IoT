@@ -104,8 +104,8 @@ def api_post_connection():
     data = request.get_json()
     uuid_user = data["user"]
     uuid_match = data["match"]
-    ssid = data["ssid"]
-    send_connection_to_questdb(uuid_user, uuid_match, ssid, host=os.environ["QDB_HOST"], port=9000, username=os.environ["DB_USERNAME"], password=os.environ["DB_PASSWORD"])
+    ssrssiid = data["rssi"]
+    send_connection_to_questdb(uuid_user, uuid_match, rssi, host=os.environ["QDB_HOST"], port=9000, username=os.environ["DB_USERNAME"], password=os.environ["DB_PASSWORD"])
     return jsonify({"status" : 0})
 
 
